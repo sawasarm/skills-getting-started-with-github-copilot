@@ -21,7 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const spotsLeft = details.max_participants - details.participants.length;
         
         const participantsList = details.participants.length > 0
-          ? details.participants.map(p => `<li>${p}</li>`).join("")
+          ? details.participants.map(p => `<li class="participant-item"><span>${p}</span><span class="delete-icon" title="Unregister" data-activity="${name}" data-participant="${p}">&#128465;</span></li>`).join("")
           : "<li><em>No participants yet</em></li>";
 
         activityCard.innerHTML = `
@@ -31,13 +31,34 @@ document.addEventListener("DOMContentLoaded", () => {
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
           <div class="participants">
             <h5>Participants</h5>
-            <ul>
+            <ul class="participants-list">
               ${participantsList}
             </ul>
           </div>
         `;
 
         activitiesList.appendChild(activityCard);
+
+        // Add delete event listeners after rendering
+        setTimeout(() => {
+          activityCard.querySelectorAll('.delete-icon').forEach(icon => {
+            icon.addEventListener('click', async (e) => {
+              const activityName = icon.getAttribute('data-activity');
+              const participant = icon.getAttribute('data-participant');
+              try {
+                const response = await fetch(`/activities/${encodeURIComponent(activityName)}/unregister?email=${encodeURIComponent(participant)}`, { method: 'POST' });
+                const result = await response.json();
+                if (response.ok) {
+                  fetchActivities();
+                } else {
+                  alert(result.detail || 'Failed to unregister participant.');
+                }
+              } catch (err) {
+                alert('Error unregistering participant.');
+              }
+            });
+          });
+        }, 0);
 
         // Add option to select dropdown
         const option = document.createElement("option");
@@ -72,6 +93,7 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
